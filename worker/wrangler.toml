@@ -5,8 +5,8 @@ workers_dev = true
 
 [[kv_namespaces]]
 binding = "RAK_KV"
-id = "REPLACE_WITH_YOUR_KV_ID"
-preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"
+id = "bf17011ba25a46d9bf8937d9e96fde38"
+preview_id = "bf17011ba25a46d9bf8937d9e96fde38"
 
 [vars]
 ALLOWED_ORIGIN = "https://your-site.vercel.app"
