@@ -1,0 +1,12 @@
+name = "rak-tv-worker"
+main = "index.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "RAK_KV"
+id = "REPLACE_WITH_YOUR_KV_ID"
+preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"
+
+[vars]
+ALLOWED_ORIGIN = "https://your-site.vercel.app"

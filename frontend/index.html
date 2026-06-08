@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>RAK TV — বাংলা লাইভ IPTV</title>
+<meta name="description" content="RAK TV - বাংলাদেশের সেরা ফ্রি লাইভ IPTV"/>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+:root{
+  --red:#e50914;--red2:#b20710;
+  --bg:#0b0b10;--bg2:#13131e;--bg3:#1a1a28;--card:#16161f;
+  --border:rgba(255,255,255,0.07);--muted:rgba(255,255,255,0.42);
+  --text:#f0f0f0;
+  --radius:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:200;background:rgba(11,11,16,0.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;gap:10px;padding:0 14px}
+.logo{font-size:22px;font-weight:800;color:var(--red);letter-spacing:2px;flex-shrink:0;text-shadow:0 0 20px rgba(229,9,20,0.3)}
+.logo span{color:#fff}
+.search-wrap{flex:1;position:relative;max-width:380px}
+.search-wrap input{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:24px;padding:8px 14px 8px 38px;color:var(--text);font-size:13px;outline:none;transition:.2s}
+.search-wrap input:focus{border-color:rgba(229,9,20,0.5);background:rgba(255,255,255,0.09)}
+.search-wrap input::placeholder{color:var(--muted)}
+.s-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none}
+.topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.icon-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s}
+.icon-btn:hover{background:rgba(229,9,20,0.15);border-color:rgba(229,9,20,0.4)}
+
+/* DESKTOP LAYOUT */
+@media(min-width:900px){
+  .main-layout{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 58px);overflow:hidden}
+  .sidebar{height:100%;overflow-y:auto;border-right:1px solid var(--border);background:var(--bg2);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent}
+  .sidebar::-webkit-scrollbar{width:4px}
+  .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+  .content-area{height:100%;overflow-y:auto}
+  .player-wrapper{position:sticky;top:0;z-index:50}
+  .mobile-cats{display:none!important}
+}
+@media(max-width:899px){
+  .main-layout{display:flex;flex-direction:column}
+  .sidebar{display:none}
+}
+
+/* PLAYER */
+.player-wrapper{background:#000}
+.player-box{position:relative;width:100%;background:#000}
+video{width:100%;background:#000;object-fit:contain;display:none;max-height:56vw}
+@media(min-width:900px){video{max-height:min(360px,35vh)}}
+.player-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:2.5rem 1rem;background:linear-gradient(135deg,#0d0d1a,#160a14)}
+.idle-icon{font-size:52px;opacity:.25}
+.idle-txt{color:var(--muted);font-size:13px;text-align:center;line-height:1.6}
+.player-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.88));padding:10px 14px;display:none;align-items:center;gap:10px}
+.player-box:hover .player-controls,.player-box.show-ctrl .player-controls{display:flex}
+.ctrl-btn{background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;flex-shrink:0}
+.ctrl-btn:hover{background:var(--red);transform:scale(1.1)}
+.ctrl-name{flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctrl-fav{background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;flex-shrink:0;transition:.2s}
+.ctrl-fav:hover,.ctrl-fav.on{color:#f43f5e}
+
+/* NOW PLAYING */
+.np-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.np-logo{width:38px;height:38px;border-radius:7px;object-fit:contain;background:var(--bg3);flex-shrink:0;padding:4px}
+.np-info{flex:1;min-width:0}
+.np-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-group{font-size:11px;color:var(--muted)}
+.live-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:3px 7px;border-radius:3px;display:flex;align-items:center;gap:3px;flex-shrink:0}
+.ldot{width:5px;height:5px;background:#fff;border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* CATS */
+.cats-row{overflow-x:auto;scrollbar-width:none;background:var(--bg2);border-bottom:1px solid var(--border)}
+.cats-row::-webkit-scrollbar{display:none}
+.cats-inner{display:flex;gap:6px;padding:10px 14px;width:max-content}
+.cat-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:20px;color:rgba(255,255,255,0.58);padding:6px 15px;font-size:12px;font-weight:500;cursor:pointer;transition:.18s;white-space:nowrap}
+.cat-btn:hover{color:#fff;border-color:rgba(229,9,20,.4);background:rgba(229,9,20,.08)}
+.cat-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+
+/* SECTION HEAD */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px}
+.sec-hd h2{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.pdot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:pulse 1.8s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.ch-count{font-size:11px;color:var(--muted);font-weight:400}
+
+/* GRID */
+.ch-grid{display:grid;gap:8px;padding:0 10px 20px;grid-template-columns:repeat(3,1fr)}
+@media(min-width:480px){.ch-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:640px){.ch-grid{grid-template-columns:repeat(5,1fr)}}
+@media(min-width:900px){.ch-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.ch-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* CARD */
+.ch-card{background:var(--card);border-radius:var(--radius);overflow:hidden;cursor:pointer;border:1.5px solid var(--border);transition:transform .18s,border-color .18s,box-shadow .18s;position:relative;display:flex;flex-direction:column}
+.ch-card:hover{transform:translateY(-3px) scale(1.02);border-color:rgba(229,9,20,.6);box-shadow:0 8px 28px rgba(229,9,20,.18)}
+.ch-card.playing{border-color:var(--red);box-shadow:0 0 0 2px rgba(229,9,20,.3)}
+.card-thumb{width:100%;aspect-ratio:16/9;background:var(--bg3);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.card-thumb img{width:85%;height:85%;object-fit:contain}
+.no-logo{font-size:26px;opacity:.25}
+.play-glow{position:absolute;inset:0;background:rgba(229,9,20,.18);display:flex;align-items:center;justify-content:center;font-size:20px}
+.fav-star{position:absolute;top:5px;right:5px;font-size:13px}
+.card-body{padding:7px 8px 9px}
+.card-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-group{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* SIDEBAR */
+.sidebar-sec-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:10px 14px 4px}
+.s-ch{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:.15s;border-left:3px solid transparent}
+.s-ch:hover{background:rgba(255,255,255,0.04)}
+.s-ch.playing{background:rgba(229,9,20,.1);border-left-color:var(--red)}
+.s-logo{width:32px;height:32px;border-radius:6px;object-fit:contain;background:var(--bg3);flex-shrink:0;padding:3px}
+.s-info{flex:1;min-width:0}
+.s-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-group{font-size:10px;color:var(--muted)}
+.s-fav{font-size:14px;flex-shrink:0;opacity:.6;cursor:pointer;border:none;background:none;color:inherit}
+.s-fav:hover{opacity:1}
+
+/* PANELS */
+.panel{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)}
+.panel.open{display:flex;align-items:flex-end}
+@media(min-width:600px){.panel.open{align-items:center;justify-content:center}}
+.panel-box{background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
+@media(min-width:600px){.panel-box{border-radius:16px;max-width:480px;max-height:75vh}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-title{font-size:15px;font-weight:700}
+.panel-close{background:rgba(255,255,255,0.08);border:none;color:var(--text);font-size:16px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.panel-body{overflow-y:auto;flex:1}
+.panel-empty{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.panel-empty span{font-size:40px;display:block;margin-bottom:8px}
+.p-ch{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;transition:.15s;border-bottom:1px solid var(--border)}
+.p-ch:hover{background:rgba(255,255,255,0.04)}
+.p-logo{width:42px;height:42px;border-radius:8px;object-fit:contain;background:var(--bg3);flex-shrink:0;padding:4px}
+.p-info{flex:1;min-width:0}
+.p-name{font-size:13px;font-weight:600}
+.p-group{font-size:11px;color:var(--muted)}
+.p-action{font-size:18px;opacity:.6;cursor:pointer;border:none;background:none;color:inherit;flex-shrink:0}
+.p-action:hover{opacity:1}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+.loading-overlay.hide{opacity:0;pointer-events:none}
+.spinner{width:48px;height:48px;border:3px solid rgba(229,9,20,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{color:var(--muted);font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(25,25,38,0.97);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* BOTTOM NAV */
+@media(max-width:899px){
+  .ch-grid{padding-bottom:72px}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(11,11,16,0.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;height:60px}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer;border:none;background:none;transition:.15s;position:relative}
+  .bn-item .ico{font-size:20px;line-height:1}
+  .bn-item.active{color:var(--red)}
+  .fav-badge{position:absolute;top:6px;right:calc(50% - 16px);background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center;display:none}
+  .fav-badge.show{display:block}
+}
+@media(min-width:900px){.bottom-nav{display:none}}
+
+/* ERROR */
+.err-state{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.err-state span{font-size:40px;display:block;margin-bottom:8px}
+.retry-btn{margin-top:12px;background:var(--red);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;transition:.2s}
+.retry-btn:hover{background:var(--red2)}
+.no-res{display:none;text-align:center;padding:3rem 1rem;color:var(--muted)}
+.no-res span{font-size:40px;display:block;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loader">
+  <div class="spinner"></div>
+  <div class="loading-txt">চ্যানেল লোড হচ্ছে...</div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">RAK<span>TV</span></div>
+  <div class="search-wrap">
+    <span class="s-ic">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search channels... চ্যানেল খুঁজুন" oninput="doSearch()"/>
+  </div>
+  <div class="topbar-right">
+    <button class="icon-btn" onclick="openPanel('fav')" title="Favorites">❤️</button>
+    <button class="icon-btn" onclick="openPanel('hist')" title="History">🕐</button>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <!-- SIDEBAR desktop -->
+  <aside class="sidebar" id="sidebar">
+    <div class="cats-row">
+      <div class="cats-inner" id="sidebarCats"></div>
+    </div>
+    <div id="sidebarList"></div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+
+    <!-- PLAYER -->
+    <div class="player-wrapper">
+      <div class="player-box" id="playerBox">
+        <div class="player-idle" id="playerIdle">
+          <div class="idle-icon">📺</div>
+          <div class="idle-txt">নিচে থেকে একটি চ্যানেল বেছে নিন<br><small>Select a channel to start watching</small></div>
+        </div>
+        <video id="vid" autoplay playsinline controls></video>
+        <div class="player-controls" id="playerCtrl">
+          <button class="ctrl-btn" onclick="prevCh()" title="Previous">⏮</button>
+          <button class="ctrl-btn" id="ppBtn" onclick="togglePlay()">⏸</button>
+          <button class="ctrl-btn" onclick="nextCh()" title="Next">⏭</button>
+          <span class="ctrl-name" id="ctrlName"></span>
+          <button class="ctrl-fav" id="ctrlFav" onclick="toggleFav(currentIdx)">🤍</button>
+        </div>
+      </div>
+      <div class="np-bar" id="npBar" style="display:none">
+        <img class="np-logo" id="npLogo" src="" alt=""/>
+        <div class="np-info">
+          <div class="np-name" id="npName">—</div>
+          <div class="np-group" id="npGroup"></div>
+        </div>
+        <div class="live-badge"><span class="ldot"></span> LIVE</div>
+      </div>
+    </div>
+
+    <!-- CATS mobile -->
+    <div class="cats-row mobile-cats">
+      <div class="cats-inner" id="mobileCats"></div>
+    </div>
+
+    <!-- GRID -->
+    <div class="sec-hd">
+      <h2><span class="pdot"></span><span id="secTitle">সব চ্যানেল</span> <span class="ch-count" id="chCount"></span></h2>
+    </div>
+    <div id="errState" class="err-state" style="display:none">
+      <span>⚠️</span>চ্যানেল লোড হয়নি<br>
+      <button class="retry-btn" onclick="loadChannels()">🔄 আবার চেষ্টা করুন</button>
+    </div>
+    <div class="ch-grid" id="grid"></div>
+    <div class="no-res" id="noRes"><span>📡</span>কোনো চ্যানেল পাওয়া যায়নি</div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bn-item active" id="bn0" onclick="setTab('home',0)">
+    <span class="ico">🏠</span>Home
+  </button>
+  <button class="bn-item" id="bn1" onclick="setTab('search',1)">
+    <span class="ico">🔍</span>Search
+  </button>
+  <button class="bn-item" id="bn2" onclick="openPanel('fav');setTab('fav',2)">
+    <span class="ico">❤️</span>Favorites
+    <span class="fav-badge" id="favBadge"></span>
+  </button>
+  <button class="bn-item" id="bn3" onclick="openPanel('hist');setTab('hist',3)">
+    <span class="ico">🕐</span>History
+  </button>
+</nav>
+
+<!-- FAVORITES PANEL -->
+<div class="panel" id="favPanel" onclick="panelBgClose(event,'favPanel')">
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="panel-title">❤️ My Favorites</span>
+      <button class="panel-close" onclick="closePanel('favPanel')">✕</button>
+    </div>
+    <div class="panel-body" id="favBody"></div>
+  </div>
+</div>
+
+<!-- HISTORY PANEL -->
+<div class="panel" id="histPanel" onclick="panelBgClose(event,'histPanel')">
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="panel-title">🕐 Recently Watched</span>
+      <button class="panel-close" onclick="closePanel('histPanel')">✕</button>
+    </div>
+    <div class="panel-body" id="histBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG — শুধু এই একটা লাইন বদলাতে হবে ──
+const WORKER_URL = 'https://rak-tv-worker.YOUR_SUBDOMAIN.workers.dev';
+
+// ── STATE ──
+let CHANNELS = [];
+let activeCat = 'সব';
+let currentIdx = -1;
+let hlsObj = null;
+let favorites = JSON.parse(localStorage.getItem('raktv_fav') || '[]');
+let watchHistory = JSON.parse(localStorage.getItem('raktv_hist') || '[]');
+
+// ── LOAD CHANNELS FROM WORKER ──
+async function loadChannels() {
+  document.getElementById('loader').classList.remove('hide');
+  document.getElementById('errState').style.display = 'none';
+  try {
+    const res = await fetch(`${WORKER_URL}/api/channels`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    CHANNELS = await res.json();
+    document.getElementById('loader').classList.add('hide');
+    init();
+  } catch (e) {
+    console.error('Load failed:', e);
+    document.getElementById('loader').classList.add('hide');
+    document.getElementById('errState').style.display = 'block';
+  }
+}
+
+// ── INIT ──
+function init() {
+  const groups = ['সব', ...new Set(CHANNELS.map(c => c.group))];
+  buildCats(document.getElementById('mobileCats'), groups);
+  buildCats(document.getElementById('sidebarCats'), groups);
+  filterAll();
+  updateFavBadge();
+
+  document.getElementById('playerBox').addEventListener('click', () => {
+    const pb = document.getElementById('playerBox');
+    pb.classList.add('show-ctrl');
+    clearTimeout(pb._t);
+    pb._t = setTimeout(() => pb.classList.remove('show-ctrl'), 4000);
+  });
+
+  // Desktop check
+  if (window.innerWidth >= 900) {
+    document.getElementById('sidebar').style.display = 'block';
+  }
+  window.addEventListener('resize', () => {
+    document.getElementById('sidebar').style.display = window.innerWidth >= 900 ? 'block' : 'none';
+  });
+}
+
+// ── CATS ──
+function buildCats(el, groups) {
+  el.innerHTML = groups.map(g =>
+    `<button class="cat-btn${g === 'সব' ? ' active' : ''}" onclick="setCat('${g}',this)">${g}</button>`
+  ).join('');
+}
+function setCat(g, btn) {
+  activeCat = g;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.textContent === g));
+  document.getElementById('secTitle').textContent = g === 'সব' ? 'সব চ্যানেল' : g;
+  document.getElementById('searchInput').value = '';
+  filterAll();
+}
+
+// ── FILTER ──
+function doSearch() { filterAll(); }
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  return CHANNELS.filter(ch => {
+    const mc = activeCat === 'সব' || ch.group === activeCat;
+    const mq = !q || ch.name.toLowerCase().includes(q) || ch.group.toLowerCase().includes(q);
+    return mc && mq;
+  });
+}
+function filterAll() {
+  const list = getFiltered();
+  document.getElementById('chCount').textContent = list.length + ' channels';
+  renderGrid(list);
+  if (window.innerWidth >= 900) buildSidebar(list);
+}
+
+// ── GRID ──
+function renderGrid(list) {
+  const grid = document.getElementById('grid');
+  const noRes = document.getElementById('noRes');
+  if (!list.length) { grid.innerHTML = ''; noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+  grid.innerHTML = list.map(ch => {
+    const idx = CHANNELS.indexOf(ch);
+    const isP = idx === currentIdx;
+    const isFav = favorites.includes(idx);
+    return `<div class="ch-card${isP ? ' playing' : ''}" onclick="playChannel(${idx})">
+      <div class="card-thumb">
+        ${ch.logo
+          ? `<img src="${ch.logo}" alt="${ch.name}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\"no-logo\\">📺</span>'">`
+          : `<span class="no-logo">📺</span>`}
+        ${isP ? `<div class="play-glow">▶️</div>` : ''}
+        ${isFav ? `<span class="fav-star">⭐</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-name">${ch.name}</div>
+        <div class="card-group">${ch.group}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SIDEBAR ──
+function buildSidebar(list) {
+  const groups = [...new Set(list.map(c => c.group))];
+  document.getElementById('sidebarList').innerHTML = groups.map(g => {
+    const chs = list.filter(c => c.group === g);
+    return `<div class="sidebar-sec-title">${g}</div>` +
+      chs.map(ch => {
+        const idx = CHANNELS.indexOf(ch);
+        const isFav = favorites.includes(idx);
+        return `<div class="s-ch${idx === currentIdx ? ' playing' : ''}" onclick="playChannel(${idx})">
+          <img class="s-logo" src="${ch.logo || ''}" alt="${ch.name}" onerror="this.src=''" loading="lazy"/>
+          <div class="s-info"><div class="s-name">${ch.name}</div><div class="s-group">${ch.group}</div></div>
+          <button class="s-fav" onclick="event.stopPropagation();toggleFav(${idx})">${isFav ? '⭐' : '☆'}</button>
+        </div>`;
+      }).join('');
+  }).join('');
+}
+
+// ── PLAY ──
+async function playChannel(idx) {
+  if (idx < 0 || idx >= CHANNELS.length) return;
+  const ch = CHANNELS[idx];
+  currentIdx = idx;
+
+  // History
+  watchHistory = watchHistory.filter(i => i !== idx);
+  watchHistory.unshift(idx);
+  if (watchHistory.length > 20) watchHistory.pop();
+  localStorage.setItem('raktv_hist', JSON.stringify(watchHistory));
+
+  // UI
+  document.getElementById('playerIdle').style.display = 'none';
+  const vid = document.getElementById('vid');
+  vid.style.display = 'block';
+  document.getElementById('npBar').style.display = 'flex';
+  document.getElementById('npName').textContent = ch.name;
+  document.getElementById('npGroup').textContent = ch.group;
+  document.getElementById('npLogo').src = ch.logo || '';
+  document.getElementById('ctrlName').textContent = ch.name;
+  updateFavBtn();
+
+  // Show controls briefly
+  const pb = document.getElementById('playerBox');
+  pb.classList.add('show-ctrl');
+  clearTimeout(pb._t);
+  pb._t = setTimeout(() => pb.classList.remove('show-ctrl'), 4000);
+
+  // ── STREAM URL from Worker (never exposed to browser source) ──
+  const streamUrl = `${WORKER_URL}/api/stream?id=${ch.id}`;
+
+  if (hlsObj) { hlsObj.destroy(); hlsObj = null; }
+
+  if (Hls.isSupported()) {
+    hlsObj = new Hls({ enableWorker: true, lowLatencyMode: true, maxBufferLength: 30 });
+    hlsObj.loadSource(streamUrl);
+    hlsObj.attachMedia(vid);
+    hlsObj.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
+    hlsObj.on(Hls.Events.ERROR, (e, d) => {
+      if (d.fatal) showToast('⚠️ স্ট্রিম লোড হচ্ছে না');
+    });
+  } else {
+    vid.src = streamUrl;
+    vid.play().catch(() => {});
+  }
+
+  filterAll();
+  if (window.innerWidth >= 900) {
+    document.querySelector(`[onclick="playChannel(${idx})"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function prevCh() {
+  const list = getFiltered();
+  if (!list.length) return;
+  const cur = list.findIndex(c => CHANNELS.indexOf(c) === currentIdx);
+  playChannel(CHANNELS.indexOf(list[cur <= 0 ? list.length - 1 : cur - 1]));
+}
+function nextCh() {
+  const list = getFiltered();
+  if (!list.length) return;
+  const cur = list.findIndex(c => CHANNELS.indexOf(c) === currentIdx);
+  playChannel(CHANNELS.indexOf(list[cur >= list.length - 1 ? 0 : cur + 1]));
+}
+function togglePlay() {
+  const vid = document.getElementById('vid');
+  const btn = document.getElementById('ppBtn');
+  if (vid.paused) { vid.play(); btn.textContent = '⏸'; }
+  else { vid.pause(); btn.textContent = '▶️'; }
+}
+
+// ── FAVORITES ──
+function toggleFav(idx) {
+  const isFav = favorites.includes(idx);
+  favorites = isFav ? favorites.filter(i => i !== idx) : [...favorites, idx];
+  localStorage.setItem('raktv_fav', JSON.stringify(favorites));
+  updateFavBtn();
+  updateFavBadge();
+  filterAll();
+  showToast(isFav ? '💔 Removed from favorites' : '❤️ Added to favorites');
+}
+function updateFavBtn() {
+  if (currentIdx < 0) return;
+  const isFav = favorites.includes(currentIdx);
+  const btn = document.getElementById('ctrlFav');
+  btn.textContent = isFav ? '❤️' : '🤍';
+  btn.classList.toggle('on', isFav);
+}
+function updateFavBadge() {
+  const el = document.getElementById('favBadge');
+  if (favorites.length) { el.textContent = favorites.length; el.classList.add('show'); }
+  else el.classList.remove('show');
+}
+
+// ── PANELS ──
+function openPanel(type) {
+  if (type === 'fav') { buildFavPanel(); document.getElementById('favPanel').classList.add('open'); }
+  else { buildHistPanel(); document.getElementById('histPanel').classList.add('open'); }
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+function panelBgClose(e, id) { if (e.target.classList.contains('panel')) closePanel(id); }
+
+function buildFavPanel() {
+  const body = document.getElementById('favBody');
+  if (!favorites.length) {
+    body.innerHTML = '<div class="panel-empty"><span>💔</span>No favorites yet.<br>Tap ⭐ on any channel.</div>';
+    return;
+  }
+  body.innerHTML = favorites.map(idx => {
+    const ch = CHANNELS[idx]; if (!ch) return '';
+    return `<div class="p-ch" onclick="playChannel(${idx});closePanel('favPanel')">
+      <img class="p-logo" src="${ch.logo || ''}" alt="${ch.name}" onerror="this.src=''"/>
+      <div class="p-info"><div class="p-name">${ch.name}</div><div class="p-group">${ch.group}</div></div>
+      <button class="p-action" onclick="event.stopPropagation();toggleFav(${idx});buildFavPanel()" title="Remove">🗑️</button>
+    </div>`;
+  }).join('');
+}
+function buildHistPanel() {
+  const body = document.getElementById('histBody');
+  if (!watchHistory.length) {
+    body.innerHTML = '<div class="panel-empty"><span>🕐</span>No history yet.<br>Watch a channel first!</div>';
+    return;
+  }
+  body.innerHTML = watchHistory.map(idx => {
+    const ch = CHANNELS[idx]; if (!ch) return '';
+    return `<div class="p-ch" onclick="playChannel(${idx});closePanel('histPanel')">
+      <img class="p-logo" src="${ch.logo || ''}" alt="${ch.name}" onerror="this.src=''"/>
+      <div class="p-info"><div class="p-name">${ch.name}</div><div class="p-group">${ch.group}</div></div>
+      <button class="p-action">▶️</button>
+    </div>`;
+  }).join('');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── BOTTOM NAV ──
+function setTab(tab, n) {
+  document.querySelectorAll('.bn-item').forEach((b, i) => b.classList.toggle('active', i === n));
+  if (tab === 'search') {
+    document.getElementById('searchInput').focus();
+    window.scrollTo({ top: 200, behavior: 'smooth' });
+  } else if (tab === 'home') {
+    setCat('সব');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ── START ──
+loadChannels();
+</script>
+</body>
+</html>
